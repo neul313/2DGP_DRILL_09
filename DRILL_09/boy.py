@@ -2,7 +2,8 @@ from pico2d import load_image, get_time
 from sdl2 import SDL_KEYDOWN, SDLK_SPACE, SDLK_RIGHT, SDL_KEYUP, SDLK_LEFT
 
 from state_machine import StateMachine
-
+from ball import Ball
+import game_world
 
 def space_down(e): # e is space down ?
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_SPACE
@@ -26,9 +27,6 @@ def left_up(e):
 
 
 
-
-
-
 class Idle:
 
     def __init__(self, boy):
@@ -40,7 +38,9 @@ class Idle:
 
 
     def exit(self, e):
-        pass
+        if space_down(e):
+            self.boy.fire_ball()
+
 
     def do(self):
         self.boy.frame = (self.boy.frame + 1) % 8
@@ -91,7 +91,8 @@ class Run:
             self.boy.dir = self.boy.face_dir = -1
 
     def exit(self, e):
-        pass
+        if space_down(e):
+            self.boy.fire_ball()
 
     def do(self):
         self.boy.frame = (self.boy.frame + 1) % 8
@@ -102,10 +103,6 @@ class Run:
             self.boy.image.clip_draw(self.boy.frame * 100, 100, 100, 100, self.boy.x, self.boy.y)
         else: # face_dir == -1: # left
             self.boy.image.clip_draw(self.boy.frame * 100, 0, 100, 100, self.boy.x, self.boy.y)
-
-
-
-
 
 
 
@@ -124,8 +121,8 @@ class Boy:
             self.IDLE,
             {
                 self.SLEEP : {space_down: self.IDLE},
-                self.IDLE : {time_out: self.SLEEP, right_down: self.RUN, left_down: self.RUN, right_up: self.RUN, left_up: self.RUN},
-                self.RUN : {right_up: self.IDLE, left_up: self.IDLE, right_down: self.IDLE, left_down: self.IDLE}
+                self.IDLE : {space_down: self.IDLE, time_out: self.SLEEP, right_down: self.RUN, left_down: self.RUN, right_up: self.RUN, left_up: self.RUN},
+                self.RUN : {space_down: self.RUN, right_up: self.IDLE, left_up: self.IDLE, right_down: self.IDLE, left_down: self.IDLE}
             }
         )
 
@@ -138,3 +135,10 @@ class Boy:
 
     def draw(self):
         self.state_machine.draw()
+
+    def fire_ball(self):
+        ball = Ball(self.x, self.y, self.face_dir * 10)
+        game_world.add_object(ball, 1)
+
+
+
